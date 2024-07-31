@@ -48,3 +48,11 @@ socket.on("user-disconnect", (id) => {
     delete markers[id];
   }
 });
+
+const userCountElement = document.createElement("div");
+userCountElement.id = "user-count";
+document.body.appendChild(userCountElement);
+
+socket.on("update-user-count", (count) => {
+  userCountElement.textContent = `Online Users: ${count}`;
+});

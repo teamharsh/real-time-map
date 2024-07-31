@@ -12,12 +12,19 @@ app.use(express.static(path.join(__dirname, "public")));
 const server = http.createServer(app);
 const io = socketio(server);
 
+let userCount = 0;
+
 io.on("connection", (socket) => {
+  userCount++;
+  io.emit("update-user-count", userCount);
+
   socket.on("send-location", (data) => {
     io.emit("receive-location", { id: socket.id, ...data });
   });
 
   socket.on("disconnect", () => {
+    userCount--;
+    io.emit("update-user-count", userCount);
     io.emit("user-disconnect", socket.id);
   });
 });
