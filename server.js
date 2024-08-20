@@ -22,6 +22,10 @@ io.on("connection", (socket) => {
     io.emit("receive-location", { id: socket.id, ...data });
   });
 
+  socket.on("send-message", (data) => {
+    io.emit("receive-message", data);
+  });
+
   socket.on("disconnect", () => {
     userCount--;
     io.emit("update-user-count", userCount);

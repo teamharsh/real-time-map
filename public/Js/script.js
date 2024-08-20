@@ -2,6 +2,14 @@ const socket = io();
 
 const userName = prompt("Please enter your name:");
 
+if (Notification.permission === "default") {
+  Notification.requestPermission().then((permission) => {
+    if (permission === "granted") {
+      console.log("Notification permission granted.");
+    }
+  });
+}
+
 if (navigator.geolocation) {
   navigator.geolocation.watchPosition(
     (position) => {
@@ -30,6 +38,7 @@ L.tileLayer(lightTheme, {
 
 const markers = {};
 const locationHistory = {};
+const userStatus = {};
 
 socket.on("receive-location", (data) => {
   const { latitude, longitude, id, userName } = data;
@@ -62,30 +71,89 @@ socket.on("receive-location", (data) => {
     L.polyline(locationHistory[id], { color: 'blue' }).addTo(map);
   }
   
-  const userStatus = {};
+  userStatus[id] = { status: 'online', userName };
+  updateUserStatus();
+});
 
-  socket.on("receive-location", (data) => {
-    const { id, userName } = data;
-    userStatus[id] = 'online';
+socket.on("user-disconnect", (id) => {
+  if (userStatus[id]) {
+    userStatus[id].status = 'offline';
     updateUserStatus();
-  });
-
-  socket.on("user-disconnect", (id) => {
-    userStatus[id] = 'offline';
-    updateUserStatus();
-  });
-
-  function updateUserStatus() {
-    for (const id in userStatus) {
-      const status = userStatus[id];
-      // Update the UI to reflect the user's status
-    }
   }
 });
+
+function updateUserStatus() {
+  for (const id in userStatus) {
+    const status = userStatus[id];
+    // Update the UI to reflect the user's status
+  }
+}
+
+function showOnlineUsers() {
+  const onlineUsers = Object.values(userStatus)
+    .filter(user => user.status === 'online')
+    .map(user => user.userName);
+
+  userListContainer.innerHTML = ""; // Clear previous list
+
+  onlineUsers.forEach(userName => {
+    const userItem = document.createElement("div");
+    userItem.textContent = userName;
+    userListContainer.appendChild(userItem);
+  });
+
+  // Toggle visibility
+  userListContainer.style.display = userListContainer.style.display === "none" ? "block" : "none";
+}
 
 const userCountElement = document.createElement("div");
 userCountElement.id = "user-count";
 document.body.appendChild(userCountElement);
+
+const userListContainer = document.createElement("div");
+userListContainer.id = "user-list";
+userListContainer.style.display = "none"; // Initially hidden
+document.body.appendChild(userListContainer);
+
+userCountElement.addEventListener("click", showOnlineUsers);
+
 socket.on("update-user-count", (count) => {
   userCountElement.textContent = `Online Users: ${count}`;
+});
+
+// Chat functionality
+const chatMessages = document.getElementById("chat-messages");
+const chatInput = document.getElementById("chat-input");
+const sendButton = document.getElementById("send-button");
+
+function sendMessage() {
+  const message = chatInput.value;
+  if (message.trim()) {
+    socket.emit("send-message", { userName, message });
+    chatInput.value = "";
+  }
+}
+
+sendButton.addEventListener("click", sendMessage);
+
+chatInput.addEventListener("keypress", (event) => {
+  if (event.key === "Enter") {
+    sendMessage();
+  }
+});
+
+socket.on("receive-message", (data) => {
+  const { userName, message } = data;
+  const messageElement = document.createElement("div");
+  messageElement.textContent = `${userName}: ${message}`;
+  chatMessages.appendChild(messageElement);
+  chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to the bottom
+
+  // Show notification
+  if (Notification.permission === "granted") {
+    new Notification(`${userName} says:`, {
+      body: message,
+      icon: "/to/avatar.png", // Optional: path to an icon
+    });
+  }
 });
