@@ -86,14 +86,6 @@ socket.on("receive-location", (data) => {
 const userCountElement = document.createElement("div");
 userCountElement.id = "user-count";
 document.body.appendChild(userCountElement);
-
 socket.on("update-user-count", (count) => {
   userCountElement.textContent = `Online Users: ${count}`;
-});
-
-document.getElementById("theme-toggle").addEventListener("click", () => {
-  const currentTheme = map.hasLayer(lightTheme) ? lightTheme : darkTheme;
-  const newTheme = currentTheme === lightTheme ? darkTheme : lightTheme;
-  map.removeLayer(currentTheme);
-  L.tileLayer(newTheme, { attribution: "Harsh's Map" }).addTo(map);
 });
